@@ -1,0 +1,1352 @@
+{
+  "id": null,
+  "uid": "dvf-saint-maur",
+  "title": "DVF — Marché immobilier Saint-Maur-des-Fossés",
+  "tags": [
+    "dvf",
+    "immobilier",
+    "saint-maur",
+    "prix-m2",
+    "open-data"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "refresh": "1h",
+  "time": {
+    "from": "2020-01-01",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "PostgreSQL",
+          "value": "PostgreSQL"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "DS_POSTGRESQL",
+        "options": [],
+        "query": "postgres",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Prix médian — Appartement",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nSELECT CURRENT_DATE::timestamptz AS time,\n       round(percentile_cont(0.5) WITHIN GROUP (ORDER BY prix_m2))::int AS value\nFROM dvf.transactions\nWHERE prix_m2_fiable AND type_bien = 'Appartement' AND date_mutation >= (SELECT max(date_mutation) FROM dvf.transactions WHERE prix_m2_fiable) - INTERVAL '12 months';\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "unit": "currencyEUR"
+        },
+        "overrides": []
+      },
+      "description": "Médiane des prix au m² des ventes d'appartements sur les 12 derniers mois de données."
+    },
+    {
+      "id": 2,
+      "title": "Prix médian — Maison",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 5,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nSELECT CURRENT_DATE::timestamptz AS time,\n       round(percentile_cont(0.5) WITHIN GROUP (ORDER BY prix_m2))::int AS value\nFROM dvf.transactions\nWHERE prix_m2_fiable AND type_bien = 'Maison' AND date_mutation >= (SELECT max(date_mutation) FROM dvf.transactions WHERE prix_m2_fiable) - INTERVAL '12 months';\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "unit": "currencyEUR"
+        },
+        "overrides": []
+      },
+      "description": "Médiane des prix au m² des ventes de maisons sur les 12 derniers mois de données."
+    },
+    {
+      "id": 3,
+      "title": "Écart Maison / Appartement",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 4,
+        "x": 10,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nWITH p AS (\n    SELECT type_bien, percentile_cont(0.5) WITHIN GROUP (ORDER BY prix_m2) AS median\n    FROM dvf.transactions\n    WHERE prix_m2_fiable AND type_bien IN ('Appartement', 'Maison') AND date_mutation >= (SELECT max(date_mutation) FROM dvf.transactions WHERE prix_m2_fiable) - INTERVAL '12 months'\n    GROUP BY type_bien\n)\nSELECT CURRENT_DATE::timestamptz AS time,\n       round((100.0 * ((SELECT median FROM p WHERE type_bien = 'Maison')\n                       / NULLIF((SELECT median FROM p WHERE type_bien = 'Appartement'), 0) - 1))::numeric, 1) AS value;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "description": "Prime de prix des maisons par rapport aux appartements, en %."
+    },
+    {
+      "id": 4,
+      "title": "Ventes de logements — 12 mois",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 14,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nSELECT CURRENT_DATE::timestamptz AS time, count(*) AS value\nFROM dvf.transactions\nWHERE type_bien IN ('Appartement', 'Maison') AND date_mutation >= (SELECT max(date_mutation) FROM dvf.transactions WHERE prix_m2_fiable) - INTERVAL '12 months';\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "description": "Nombre d'actes portant sur un logement (appartement ou maison) sur 12 mois glissants."
+    },
+    {
+      "id": 5,
+      "title": "Tendance du marché",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 19,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nSELECT mois::timestamptz AS time, tendance AS value\nFROM dvf.marche_mensuel\nWHERE type_bien = 'Global'\nORDER BY mois DESC\nLIMIT 1;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "Accélération": {
+                  "color": "red",
+                  "index": 0
+                },
+                "Stabilité": {
+                  "color": "green",
+                  "index": 1
+                },
+                "Ralentissement": {
+                  "color": "blue",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Momentum du prix lissé 3 mois comparé au prix lissé 12 mois (tous biens). Seuil de ±2 % : au-delà, la variation se distingue du bruit mensuel."
+    },
+    {
+      "id": 6,
+      "title": "Prix au m² — évolution dans le temps (appartement vs maison)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "\nSELECT mois::timestamptz AS time,\n       type_bien AS metric,\n       prix_m2_median_3m AS value\nFROM dvf.marche_mensuel\nWHERE type_bien IN ('Appartement', 'Maison')\n  AND prix_m2_median_3m IS NOT NULL\n  AND $__timeFilter(mois)\nORDER BY mois;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "currencyEUR"
+        },
+        "overrides": []
+      },
+      "description": "Médiane mensuelle des prix au m², lissée sur 3 mois. Série calculée uniquement sur les transactions dont le prix au m² est exploitable."
+    },
+    {
+      "id": 7,
+      "title": "Volume de ventes par mois",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "\nSELECT mois::timestamptz AS time,\n       type_bien AS metric,\n       nb_ventes AS value\nFROM dvf.marche_mensuel\nWHERE type_bien IN ('Appartement', 'Maison')\n  AND $__timeFilter(mois)\nORDER BY mois;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 0,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "description": "Nombre d'actes par mois et par type de bien. Un mois peut être partiel si la publication DVF s'arrête en cours de mois."
+    },
+    {
+      "id": 8,
+      "title": "Tendance du marché — momentum 3 mois vs 12 mois (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "\nSELECT mois::timestamptz AS time,\n       type_bien AS metric,\n       momentum_pct AS value\nFROM dvf.marche_mensuel\nWHERE type_bien IN ('Global', 'Appartement', 'Maison')\n  AND momentum_pct IS NOT NULL\n  AND $__timeFilter(mois)\nORDER BY mois;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": -2
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "description": "Prix lissé sur 3 mois comparé au prix lissé sur 12 mois. Zone bleue (< -2 %) : ralentissement. Zone verte (-2 % à +2 %) : stabilité. Zone rouge (> +2 %) : accélération."
+    },
+    {
+      "id": 9,
+      "title": "Lecture détaillée de la tendance",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nSELECT mois AS \"Mois\",\n       type_bien AS \"Type\",\n       nb_ventes AS \"Ventes\",\n       prix_m2_median AS \"Prix médian €/m²\",\n       prix_m2_median_3m AS \"Prix lissé 3 mois\",\n       prix_m2_median_12m AS \"Prix lissé 12 mois\",\n       momentum_pct AS \"Momentum 3m/12m (%)\",\n       variation_yoy_pct AS \"Variation 1 an (%)\",\n       volume_yoy_pct AS \"Volume 1 an (%)\",\n       nb_ventes_12m AS \"Ventes 12 mois\",\n       tendance AS \"Tendance\"\nFROM dvf.marche_mensuel\nWHERE type_bien IN ('Global', 'Appartement', 'Maison')\n  AND $__timeFilter(mois)\nORDER BY mois DESC, type_bien\nLIMIT 24;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "time",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tendance"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Accélération": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "Stabilité": {
+                        "color": "green",
+                        "index": 1
+                      },
+                      "Ralentissement": {
+                        "color": "blue",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Momentum 3m/12m (%)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prix médian €/m²"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prix lissé 3 mois"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prix lissé 12 mois"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              }
+            ]
+          }
+        ]
+      },
+      "transformations": [],
+      "description": "Détail mois par mois des prix lissés, du momentum et des volumes."
+    },
+    {
+      "id": 10,
+      "title": "Dispersion des prix — appartements (P25 / médiane / P75)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "\nSELECT m.mois::timestamptz AS time,\n       q.libelle AS metric,\n       q.valeur AS value\nFROM dvf.marche_mensuel m\nCROSS JOIN LATERAL (VALUES ('P25', m.prix_m2_p25),\n                           ('Médiane', m.prix_m2_median),\n                           ('P75', m.prix_m2_p75)) AS q(libelle, valeur)\nWHERE m.type_bien = 'Appartement'\n  AND m.prix_m2_median IS NOT NULL\n  AND $__timeFilter(m.mois)\nORDER BY 1;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "currencyEUR"
+        },
+        "overrides": []
+      },
+      "description": "Un quart des ventes se fait sous le P25, un quart au-dessus du P75. L'écart P25-P75 mesure l'hétérogénéité du parc vendu."
+    },
+    {
+      "id": 11,
+      "title": "Dispersion des prix — maisons (P25 / médiane / P75)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 31
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "\nSELECT m.mois::timestamptz AS time,\n       q.libelle AS metric,\n       q.valeur AS value\nFROM dvf.marche_mensuel m\nCROSS JOIN LATERAL (VALUES ('P25', m.prix_m2_p25),\n                           ('Médiane', m.prix_m2_median),\n                           ('P75', m.prix_m2_p75)) AS q(libelle, valeur)\nWHERE m.type_bien = 'Maison'\n  AND m.prix_m2_median IS NOT NULL\n  AND $__timeFilter(m.mois)\nORDER BY 1;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "currencyEUR"
+        },
+        "overrides": []
+      },
+      "description": "Même lecture que pour les appartements ; les maisons ont un parc plus hétérogène."
+    },
+    {
+      "id": 12,
+      "title": "Carte des transactions (prix au m²)",
+      "type": "geomap",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 39
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nSELECT latitude AS lat,\n       longitude AS lon,\n       prix_m2 AS value,\n       adresse AS \"Adresse\",\n       code_postal AS \"CP\",\n       type_bien AS \"Type\",\n       surface_bati AS \"Surface (m²)\",\n       valeur_fonciere AS \"Prix (€)\",\n       date_mutation AS \"Date\"\nFROM dvf.transactions\nWHERE prix_m2_fiable\n  AND latitude IS NOT NULL\n  AND longitude IS NOT NULL\n  AND $__timeFilter(date_mutation)\nORDER BY date_mutation DESC\nLIMIT 5000;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "fit",
+          "lon": 2.4934,
+          "lat": 48.7989,
+          "zoom": 13
+        },
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showScale": false,
+          "showMeasure": false
+        },
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "type": "default"
+        },
+        "layers": [
+          {
+            "name": "Transactions",
+            "type": "markers",
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "fixed": "blue",
+                  "field": "value",
+                  "mode": "gradient"
+                },
+                "opacity": 0.75,
+                "rotation": {
+                  "fixed": 0,
+                  "mode": "mod"
+                },
+                "size": {
+                  "fixed": 6,
+                  "max": 15,
+                  "min": 4,
+                  "mode": "fixed"
+                },
+                "symbol": {
+                  "fixed": "circle",
+                  "mode": "fixed"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": -15,
+                  "textAlign": "center",
+                  "textBaseline": "bottom"
+                }
+              },
+              "tooltip": true
+            },
+            "location": {
+              "mode": "auto"
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "currencyEUR",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Prix au m² (€)"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Chaque point est un acte géolocalisé, coloré selon son prix au m². Permet de repérer les micro-marchés de la commune."
+    },
+    {
+      "id": 13,
+      "title": "Saisonnalité — ventes moyennes par mois calendaire",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 39
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "\nSELECT make_date(2000, extract(month FROM mois)::int, 1)::timestamptz AS time,\n       type_bien AS metric,\n       round(avg(nb_ventes)::numeric, 1) AS value\nFROM dvf.marche_mensuel\nWHERE type_bien IN ('Appartement', 'Maison')\n  AND mois < date_trunc('month', CURRENT_DATE)::date\nGROUP BY 1, 2\nORDER BY 1;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 0,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "description": "Moyenne du nombre de ventes pour chaque mois de l'année, toutes années confondues. Le printemps et l'automne sont traditionnellement les pics d'activité."
+    },
+    {
+      "id": 14,
+      "title": "Neuf (VEFA) vs ancien — nombre de ventes par an",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "\nSELECT make_date(annee, 1, 1)::timestamptz AS time,\n       marche AS metric,\n       count(*) AS value\nFROM dvf.transactions\nWHERE type_bien IN ('Appartement', 'Maison')\nGROUP BY 1, 2\nORDER BY 1;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 0,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "description": "Les ventes en l'état futur d'achèvement (VEFA) sont des logements neufs ; elles pèsent surtout sur les appartements."
+    },
+    {
+      "id": 15,
+      "title": "Surface médiane des logements vendus (m²)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "\nSELECT mois::timestamptz AS time,\n       type_bien AS metric,\n       surface_mediane AS value\nFROM dvf.marche_mensuel\nWHERE type_bien IN ('Appartement', 'Maison')\n  AND surface_mediane IS NOT NULL\n  AND $__timeFilter(mois)\nORDER BY mois;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "areaM2"
+        },
+        "overrides": []
+      },
+      "description": "Évolution de la taille médiane des logements vendus : un indicateur indirect du type d'acquéreur (investisseurs → petites surfaces, familles → grandes)."
+    },
+    {
+      "id": 16,
+      "title": "Voies les plus chères (≥ 5 transactions fiables)",
+      "type": "table",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 57
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nSELECT voie AS \"Voie\",\n       code_postal AS \"CP\",\n       type_bien AS \"Type\",\n       nb_ventes AS \"Ventes\",\n       prix_m2_median AS \"Prix médian €/m²\",\n       prix_m2_p25 AS \"P25\",\n       prix_m2_p75 AS \"P75\",\n       derniere_vente AS \"Dernière vente\"\nFROM dvf.prix_par_voie\nWHERE nb_ventes >= 5\nORDER BY prix_m2_median DESC\nLIMIT 15;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "time",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prix médian €/m²"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "gradient-gauge"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P25"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P75"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              }
+            ]
+          }
+        ]
+      },
+      "transformations": [],
+      "description": "Voies agrégées sur toute la période, sans filtre de date : utile pour situer une adresse, moins pour lire une tendance."
+    },
+    {
+      "id": 17,
+      "title": "Dernières transactions",
+      "type": "table",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 57
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "\nSELECT date_mutation AS \"Date\",\n       adresse AS \"Adresse\",\n       code_postal AS \"CP\",\n       type_bien AS \"Type\",\n       marche AS \"Marché\",\n       surface_bati AS \"Surface (m²)\",\n       nb_pieces AS \"Pièces\",\n       valeur_fonciere AS \"Prix (€)\",\n       prix_m2 AS \"Prix/m² (€)\"\nFROM dvf.transactions\nWHERE prix_m2_fiable\n  AND $__timeFilter(date_mutation)\nORDER BY date_mutation DESC\nLIMIT 50;\n",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "time",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prix (€)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prix/m² (€)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "gradient-gauge"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Surface (m²)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "areaM2"
+              }
+            ]
+          }
+        ]
+      },
+      "transformations": [],
+      "description": "50 derniers actes exploitables dans la plage de temps sélectionnée."
+    },
+    {
+      "id": 18,
+      "title": "Méthodologie et limites",
+      "type": "text",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "\n## À propos de ce dashboard\n\nSource : **DVF** (Demandes de valeurs foncières), produite par la **DGFiP** et publiée en open data\npar Etalab — version géolocalisée `geo-dvf` sur [files.data.gouv.fr](https://files.data.gouv.fr/geo-dvf/latest/csv/).\nPérimètre : **Saint-Maur-des-Fossés (INSEE 94068)**, code postal 94100 et 94210, millésimes 2021 et suivants.\nMise à jour : pipeline Jenkins mensuel (les données, elles, ne sont publiées qu'en avril et en octobre).\n\n### Comment le prix au m² est calculé\n\nUn acte DVF (`id_mutation`) couvre souvent plusieurs lignes : le logement, mais aussi sa cave, son\ngarage, un parking, parfois une parcelle de jardin. Le prix affiché ici n'est retenu que si l'acte\nporte sur **un seul logement** (dépendances mises à part), avec une surface bâtie ≥ 9 m² et un\nprix au m² compris entre 500 et 30 000 €. Les autres actes sont conservés en base mais exclus des\nséries de prix — ils restent comptés dans les volumes.\n\n### Pourquoi la médiane et pas la moyenne\n\nLe prix au m² DVF est très dispersé : une même rue peut mélanger un studio et un duplex. La\n**médiane** (et non la moyenne) résiste à ces extrêmes. Elle est en plus lissée sur 3 mois, car un\nmois isolé ne compte parfois que 20 à 30 ventes : insuffisant pour conclure à une tendance.\n\n### Lire la tendance\n\n| Indicateur | Calcul | Interprétation |\n|---|---|---|\n| **Momentum** | prix lissé 3 mois ÷ prix lissé 12 mois | < -2 % ralentissement, ±2 % stabilité, > +2 % accélération |\n| **Variation 1 an** | prix lissé 3 mois vs les mêmes 3 mois un an plus tôt | vue annuelle, moins réactive |\n| **Momentum volume** | ventes 12 mois vs les 12 mois précédents | un marché peut ralentir en prix et rester actif en volume |\n\n### Limites à garder en tête\n\n* La **valeur foncière** est le prix déclaré dans l'acte : elle peut correspondre à une **quote-part**\n  (divorce, succession), d'où des prix aberrants que les filtres ci-dessus ne capturent pas toujours.\n* La **surface réelle bâtie** vient du cadastre, pas d'un mesurage : elle diffère de la surface Carrez.\n* DVF ignore l'**état du bien** (travaux, étage, exposition) : à prix égal, deux logements peuvent\n  être très différents.\n* Une vente peut être **annulée ou rectifiée** : c'est pourquoi chaque import remplace intégralement\n  le millésime concerné plutôt que d'ajouter les nouvelles lignes.\n* La diffusion a **plusieurs mois de retard** : la vente la plus récente peut dater de l'année\n  précédente. Le panneau « Ventes 12 mois » porte donc sur les 12 derniers mois *disponibles*.\n"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ]
+}
